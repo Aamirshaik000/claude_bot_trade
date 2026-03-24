@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trading Bot Dashboard</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: #121a2f;
+        --panel-2: #17233f;
+        --text: #e8ecf7;
+        --muted: #9aa8c7;
+        --accent: #4f8cff;
+        --accent-2: #26d0ce;
+        --good: #2dd4bf;
+        --warn: #f59e0b;
+        --border: rgba(255, 255, 255, 0.12);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at 20% 0%, #1b2b55 0%, var(--bg) 40%), var(--bg);
+      }
+
+      .container {
+        width: min(1100px, 92vw);
+        margin: 2rem auto 3rem;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        margin-bottom: 1.4rem;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.4rem, 2vw, 2rem);
+        letter-spacing: 0.3px;
+      }
+
+      .subtle { color: var(--muted); font-size: 0.95rem; }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1rem;
+      }
+
+      .card {
+        grid-column: span 12;
+        background: linear-gradient(145deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1rem 1.1rem;
+        backdrop-filter: blur(8px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+      }
+
+      .kpi { grid-column: span 6; }
+
+      @media (max-width: 760px) {
+        .kpi { grid-column: span 12; }
+      }
+
+      .kpi-title {
+        margin: 0 0 0.5rem;
+        color: var(--muted);
+        font-size: 0.86rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .kpi-value {
+        margin: 0;
+        font-size: clamp(1.4rem, 2.2vw, 2rem);
+        font-weight: 700;
+      }
+
+      .signal-pill {
+        display: inline-block;
+        margin-top: 0.35rem;
+        background: rgba(79, 140, 255, 0.16);
+        border: 1px solid rgba(79, 140, 255, 0.35);
+        color: #dbe7ff;
+        border-radius: 999px;
+        padding: 0.28rem 0.7rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .status-line {
+        margin-top: 0.5rem;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      th, td {
+        padding: 0.8rem 0.7rem;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      th {
+        color: #bfd0ff;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        background: rgba(255,255,255,0.03);
+      }
+
+      .muted { color: var(--muted); }
+      .pnl { margin-top: 0.9rem; color: var(--good); font-weight: 700; }
+      .error { color: var(--warn); }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <section class="header">
+        <div>
+          <h1>Algorithmic Trading Dashboard</h1>
+          <p class="subtle">BTC market monitor • Auto-refresh every second</p>
+        </div>
+        <p id="updated-at" class="subtle">Waiting for first update…</p>
+      </section>
+
+      <section class="grid">
+        <article class="card kpi">
+          <h2 class="kpi-title">Current BTC Price</h2>
+          <p id="price-text" class="kpi-value">
+            {% if price is not none %}
+              ${{ '%.2f'|format(price) }}
+            {% else %}
+              <span class="muted">Unavailable</span>
+            {% endif %}
+          </p>
+          <p id="error-text" class="status-line error">{% if error %}{{ error }}{% endif %}</p>
+        </article>
+
+        <article class="card kpi">
+          <h2 class="kpi-title">Signal</h2>
+          <p class="kpi-value"><span id="signal-text">{{ signal }}</span></p>
+          <span class="signal-pill">Breakout + Trend Filter</span>
+          <p class="status-line">Paper mode enabled</p>
+        </article>
+
+        <article class="card">
+          <h2 class="kpi-title">Trade History</h2>
+          <table>
+            <thead><tr><th>#</th><th>Entry</th><th>Exit</th><th>PnL</th></tr></thead>
+            <tbody>
+              {% if trades %}
+                {% for trade in trades %}
+                <tr><td>{{ loop.index }}</td><td>{{ trade.entry }}</td><td>{{ trade.exit }}</td><td>{{ trade.pnl }}</td></tr>
+                {% endfor %}
+              {% else %}
+                <tr><td colspan="4" class="muted">No trades yet</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+          <p class="pnl">Total PnL: {{ '%.2f'|format(pnl) }}</p>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const priceText = document.getElementById("price-text");
+      const signalText = document.getElementById("signal-text");
+      const errorText = document.getElementById("error-text");
+      const updatedAt = document.getElementById("updated-at");
+
+      function formatPrice(price) {
+        return `$${Number(price).toFixed(2)}`;
+      }
+
+      async function refreshMarketData() {
+        try {
+          const response = await fetch("/api/market", { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          if (data.price === null || data.price === undefined) {
+            priceText.innerHTML = '<span class="muted">Unavailable</span>';
+          } else {
+            priceText.textContent = formatPrice(data.price);
+          }
+
+          signalText.textContent = data.signal || "HOLD";
+          errorText.textContent = data.error || "";
+          updatedAt.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+        } catch (err) {
+          errorText.textContent = `Refresh failed: ${err.message}`;
+        }
+      }
+
+      refreshMarketData();
+      setInterval(refreshMarketData, 1000);
+    </script>
+  </body>
+</html>
