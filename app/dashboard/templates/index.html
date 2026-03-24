@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trading Bot Dashboard</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 2rem; }
+      .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+      .muted { color: #666; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border-bottom: 1px solid #eee; padding: 0.5rem; text-align: left; }
+    </style>
+  </head>
+  <body>
+    <h1>Algorithmic Trading Dashboard</h1>
+
+    <div class="card">
+      <h2>Current BTC Price</h2>
+      {% if price is not none %}
+      <p><strong>${{ '%.2f'|format(price) }}</strong></p>
+      {% else %}
+      <p class="muted">Unavailable</p>
+      {% endif %}
+      {% if error %}<p class="muted">{{ error }}</p>{% endif %}
+    </div>
+
+    <div class="card">
+      <h2>Signal</h2>
+      <p><strong>{{ signal }}</strong></p>
+    </div>
+
+    <div class="card">
+      <h2>Trade History</h2>
+      <table>
+        <thead><tr><th>#</th><th>Entry</th><th>Exit</th><th>PnL</th></tr></thead>
+        <tbody>
+          {% if trades %}
+            {% for trade in trades %}
+            <tr><td>{{ loop.index }}</td><td>{{ trade.entry }}</td><td>{{ trade.exit }}</td><td>{{ trade.pnl }}</td></tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="4" class="muted">No trades yet</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+      <p><strong>Total PnL:</strong> {{ '%.2f'|format(pnl) }}</p>
+    </div>
+  </body>
+</html>
