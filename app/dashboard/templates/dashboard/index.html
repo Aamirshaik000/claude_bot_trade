@@ -17,17 +17,20 @@
 
     <div class="card">
       <h2>Current BTC Price</h2>
-      {% if price is not none %}
-      <p><strong>${{ '%.2f'|format(price) }}</strong></p>
-      {% else %}
-      <p class="muted">Unavailable</p>
-      {% endif %}
-      {% if error %}<p class="muted">{{ error }}</p>{% endif %}
+      <p id="price-text">
+        {% if price is not none %}
+          <strong>${{ '%.2f'|format(price) }}</strong>
+        {% else %}
+          <span class="muted">Unavailable</span>
+        {% endif %}
+      </p>
+      <p id="error-text" class="muted">{% if error %}{{ error }}{% endif %}</p>
+      <p id="updated-at" class="muted">Auto-refresh: every 1 second</p>
     </div>
 
     <div class="card">
       <h2>Signal</h2>
-      <p><strong>{{ signal }}</strong></p>
+      <p><strong id="signal-text">{{ signal }}</strong></p>
     </div>
 
     <div class="card">
@@ -46,5 +49,41 @@
       </table>
       <p><strong>Total PnL:</strong> {{ '%.2f'|format(pnl) }}</p>
     </div>
+
+    <script>
+      const priceText = document.getElementById("price-text");
+      const signalText = document.getElementById("signal-text");
+      const errorText = document.getElementById("error-text");
+      const updatedAt = document.getElementById("updated-at");
+
+      function formatPrice(price) {
+        return `$${Number(price).toFixed(2)}`;
+      }
+
+      async function refreshMarketData() {
+        try {
+          const response = await fetch("/api/market", { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          if (data.price === null || data.price === undefined) {
+            priceText.innerHTML = '<span class="muted">Unavailable</span>';
+          } else {
+            priceText.innerHTML = `<strong>${formatPrice(data.price)}</strong>`;
+          }
+
+          signalText.textContent = data.signal || "HOLD";
+          errorText.textContent = data.error || "";
+          updatedAt.textContent = `Last updated: ${new Date().toLocaleTimeString()} (auto-refresh every 1 second)`;
+        } catch (err) {
+          errorText.textContent = `Refresh failed: ${err.message}`;
+        }
+      }
+
+      setInterval(refreshMarketData, 1000);
+    </script>
   </body>
 </html>
